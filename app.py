@@ -10,7 +10,7 @@ Endpoints:
     GET /api/estudios?isla=<nombre>&cat=<id> -> Estudios filtrados por isla y categoria vocacional
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import sqlite3
 import os
@@ -18,7 +18,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/templates')
+@app.route('/')
 def home():
     return render_template('test-vocacional.html')
 
