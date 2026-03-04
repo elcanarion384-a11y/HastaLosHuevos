@@ -18,6 +18,10 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+@app.route('/templates')
+def home():
+    return render_template('test-vocacional.html')
+
 DB_DIR = os.environ.get("DB_DIR", os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(DB_DIR, "vocacional.db")
 
