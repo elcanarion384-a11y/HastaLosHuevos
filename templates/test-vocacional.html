@@ -881,72 +881,37 @@
   </div>
 
   <script>
-    // 🔑 CONFIGURA ESTO
-    const supabase = window.supabase.createClient(
-      "https://ubcrynzbvmtcxavycpdf.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InViY3J5bnpidm10Y3hhdnljcGRmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyMjA5OTgsImV4cCI6MjA4OTc5Njk5OH0.hHlDHW64cfwRdtzvp2e5xHyhhfsvNnhPjvDLr_gnzIs"
-    );
-  
-    // ✅ Comprobar conexión
+    const API_BASE = "https://test-0vn4.onrender.com";
+    let apiOnline = false;
+
+    // Mapeo de IDs de categoria en el HTML -> IDs en la base de datos
+    const catToDb = {
+      salud: "sanitario",
+      tecnologia: "tecnologico",
+      economia: "economico",
+      artes: "artistico",
+      deportes: "deportivo",
+      social: "social_juridico",
+      humanidades: "humanistico",
+      agraria: "agropecuario_maritimo"
+    };
     async function checkApiHealth() {
       const statusEl = document.getElementById("api-status");
   
       try {
-        const { error } = await supabase
-          .from('usuarios')
-          .select('*')
-          .limit(1);
-  
-        if (!error) {
-          statusEl.className = "online";
-          statusEl.textContent = "Supabase conectado ✅";
+       const res = await fetch(API_BASE + "/api/health", { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          apiOnline = true;
+          statusEl.className = "api-status online";
+          statusEl.innerHTML = '<span class="dot"></span><span>Servidor conectado</span>';
         } else {
-          throw error;
+          throw new Error("not ok");
         }
       } catch {
-        statusEl.className = "offline";
-        statusEl.textContent = "Error de conexión ❌";
-      }
-    }
-  
-    // 💾 Guardar dato
-    async function guardar() {
-      const nombre = document.getElementById("nombre").value;
-  
-      const { error } = await supabase
-        .from('usuarios')
-        .insert([{ nombre }]);
-  
-      if (error) {
-        alert("Error al guardar");
-      } else {
-        alert("Guardado 👍");
-      }
-    }
+        apiOnline = false;
+        statusEl.className = "api-status offline";
+        statusEl.innerHTML = '<span class="dot"></span><span>Modo offline</span>';
 
-  // 📥 Cargar datos
-  async function cargar() {
-    const lista = document.getElementById("lista");
-    lista.innerHTML = "";
-
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*');
-
-    if (error) {
-      alert("Error al cargar");
-      return;
-    }
-
-    data.forEach(user => {
-      const li = document.createElement("li");
-      li.textContent = user.nombre;
-      lista.appendChild(li);
-    });
-  }
-
-  // 🚀 Ejecutar al cargar
-  checkApiHealth();
     // ═══════════════════════════════════════════
     //  DATA
     // ═══════════════════════════════════════════
