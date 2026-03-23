@@ -881,6 +881,9 @@
   </div>
 
   <script>
+    // ═══════════════════════════════════════════
+    //  API CONFIG
+    // ═══════════════════════════════════════════
     const API_BASE = "https://test-0vn4.onrender.com";
     let apiOnline = false;
 
@@ -895,11 +898,11 @@
       humanidades: "humanistico",
       agraria: "agropecuario_maritimo"
     };
+
     async function checkApiHealth() {
       const statusEl = document.getElementById("api-status");
-  
       try {
-       const res = await fetch(API_BASE + "/api/health", { signal: AbortSignal.timeout(3000) });
+        const res = await fetch(API_BASE + "/api/health", { signal: AbortSignal.timeout(3000) });
         if (res.ok) {
           apiOnline = true;
           statusEl.className = "api-status online";
@@ -911,6 +914,8 @@
         apiOnline = false;
         statusEl.className = "api-status offline";
         statusEl.innerHTML = '<span class="dot"></span><span>Modo offline</span>';
+      }
+    }
 
     // ═══════════════════════════════════════════
     //  DATA
@@ -984,7 +989,7 @@
 
     const genderOptions = ["Masculino", "Femenino"];
     const islandOptions = ["Tenerife", "Gran Canaria", "Lanzarote", "Fuerteventura", "La Palma", "La Gomera", "El Hierro", "La Graciosa"];
-    const courseOptions = ["1-3 ESO", "4 ESO", "1 Bachillerato", "2 Bachillerato", "FP Grado Medio", "FP Grado Superior", "Universidad","Profesorado"];
+    const courseOptions = ["1-3 ESO", "4 ESO", "1 Bachillerato", "2 Bachillerato", "FP Grado Medio", "FP Grado Superior", "Universidad"];
     const likertLabels = [
       { value: 1, label: "Muy en desacuerdo" },
       { value: 2, label: "En desacuerdo" },
@@ -1097,7 +1102,7 @@
           html += `</label>`;
         });
         html += `</div>`;
-        html += `<div class="likert-ends"><span>1=Muy en desacuerdo</span><span>"5=Muy de acuerdo</span></div>`;
+        html += `<div class="likert-ends"><span>1=Muy en desacuerdo</span><span>2=Muy de acuerdo</span></div>`;
         html += `</div>`;
       });
 
