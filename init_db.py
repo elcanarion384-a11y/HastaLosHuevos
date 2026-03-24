@@ -12,7 +12,7 @@ def create_tables(cur):
     cur.execute("DROP TABLE IF EXISTS respuestas")
     cur.execute("DROP TABLE IF EXISTS numeric_responses;")
     cur.execute("CREATE TABLE numeric_responses (id SERIAL PRIMARY KEY, question_id INT, response INT CHECK (response >= 1 AND response <= 5));")
-        CREATE TABLE islas (
+    cur.excecute("""CREATE TABLE islas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nombre TEXT NOT NULL UNIQUE
         )
