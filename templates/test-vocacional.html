@@ -1038,7 +1038,40 @@
       updateStepIndicators();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-
+    // ═══════════════════════════════════════════
+    //  SAVE RESPONSES TO MONGODB
+    // ═══════════════════════════════════════════
+    async function saveResponsesToMongo() {
+      try {
+        const payload = {
+          gender: state.gender,
+          island: state.island,
+          course: state.course,
+          answers: state.answers
+        };
+    
+        const res = await fetch(API_BASE + "/api/respuestas", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(5000)
+        });
+    
+        if (res.ok) {
+          const result = await res.json();
+          console.log("✓ Respuestas guardadas en MongoDB:", result);
+          return result;
+        } else {
+          console.error("Error saving responses:", res.status);
+          return null;
+        }
+      } catch (error) {
+        console.error("Error al guardar respuestas:", error);
+        return null;
+      }
+    }
     // ═══════════════════════════════════════════
     //  DEMOGRAPHICS
     // ═══════════════════════════════════════════
