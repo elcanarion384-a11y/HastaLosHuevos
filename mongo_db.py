@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 
 # Conexión a MongoDB Atlas
-MONGODB_URL = "mongodb+srv://elcanarion384_db_user:<db_password>@cluster0.6zmczfd.mongodb.net/?appName=Cluster0"
+MONGODB_URL = "mongodb+srv://elcanarion384_db_user:badc4c9a-6e77-4a90-a859-9b6e058a159e@cluster0.6zmczfd.mongodb.net/?appName=Cluster0"
 MONGODB_DB = "hasta_los_huevos"
 
 class Registro(BaseModel):
