@@ -14,11 +14,64 @@ from flask import Flask, jsonify, request, render_template
 from flask_cors import CORS
 import sqlite3
 import os
-
+from datetime import datetime
 app = Flask(__name__)
 CORS(app)
 
 @app.route('/')
+def save_respuestas():
+    """
+    Recibe las respuestas del test vocacional y las guarda en MongoDB.
+    
+    Body JSON esperado:
+    {
+        "gender": "Masculino",
+        "island": "Tenerife",
+        "course": "2 Bachillerato",
+        "answers": {
+            "salud-0": 5,
+            "salud-1": 4,
+            ...
+        }
+    }
+    """
+    from mongo_db import get_db_collection
+    
+    try:
+        data = request.get_json()
+        
+        # Validar campos requeridos
+        required_fields = ["gender", "island", "course", "answers"]
+        if not all(field in data for field in required_fields):
+            return jsonify({
+                "status": "error",
+                "mensaje": "Faltan campos requeridos"
+            }), 400
+        
+        # Crear documento con timestamp
+        documento = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "gender": data["gender"],
+            "island": data["island"],
+            "course": data["course"],
+            "answers": data["answers"]
+        }
+        
+        # Guardar en MongoDB
+        coleccion = get_db_collection("respuestas_test")
+        resultado = coleccion.insert_one(documento)
+        
+        return jsonify({
+            "status": "guardado",
+            "id": str(resultado.inserted_id),
+            "mensaje": "Respuestas guardadas correctamente"
+        }), 201
+        
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "mensaje": str(e)
+        }), 500
 def home():
     return render_template('test-vocacional.html')
 
