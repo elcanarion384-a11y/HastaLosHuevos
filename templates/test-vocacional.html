@@ -1427,13 +1427,17 @@
       }
     });
 
-    $("btn-prev").addEventListener("click", () => {
-      if (state.currentCat > 0) {
-        state.currentCat--;
+    $("btn-next").addEventListener("click", () => {
+      if (state.currentCat < categories.length - 1) {
+        state.currentCat++;
         renderCategory();
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
-        showSection("demographics");
+        // --- AÑADE ESTA LÍNEA AQUÍ ---
+        saveResponsesToMongo(); // <--- ESTO ACTIVA EL GUARDADO
+        
+        showSection("results");
+        renderResults();
       }
     });
 
