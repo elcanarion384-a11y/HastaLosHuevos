@@ -45,32 +45,16 @@ def get_db_collection(collection_name: str = "registros"):
     db = client[MONGODB_DB]
     return db[collection_name]
 
-async def guardar_registro(registro: Registro, collection_name: str = "registros") -> dict:
-    """
-    Guarda un registro en MongoDB.
-    
-    Args:
-        registro (Registro): Objeto registro con sensor, valor, unidad
-        collection_name (str): Nombre de la colección
-        
-    Returns:
-        dict: Resultado con el ID del documento insertado
-    """
+def guardar_registro(registro_dict, collection_name="respuestas_test"):
     try:
         coleccion = get_db_collection(collection_name)
-        dato = registro.dict()
-        resultado = coleccion.insert_one(dato)
-        return {
-            "status": "recibido",
-            "id": str(resultado.inserted_id),
-            "datos": dato
-        }
+        # Usamos el diccionario directamente que envía Flask
+        resultado = coleccion.insert_one(registro_dict)
+        print(f"ID insertado: {resultado.inserted_id}")
+        return {"status": "guardado", "id": str(resultado.inserted_id)}
     except Exception as e:
-        return {
-            "status": "error",
-            "mensaje": str(e)
-        }
-
+        print(f"Error en Mongo: {e}")
+        return {"status": "error", "mensaje": str(e)}
 async def obtener_registros(collection_name: str = "registros", limite: int = 10) -> list:
     """
     Obtiene los últimos registros de MongoDB.
