@@ -213,7 +213,19 @@ def get_recomendados():
     """
     isla_nombre = request.args.get("isla")
     cats_param = request.args.get("cats", "")
-
+    try:
+        from mongo_db import get_db_collection
+        coleccion = get_db_collection("respuestas_test")
+        documento_rapido = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "island": isla_nombre,
+            "top_categories": cats_param,
+            "metodo": "directo_desde_recomendados"
+        }
+        coleccion.insert_one(documento_rapido)
+        print("✅ Guardado automático en MongoDB realizado")
+    except Exception as e:
+        print(f"⚠️ No se pudo guardar backup en Mongo: {e}")
     if not isla_nombre:
         return jsonify({"error": "El parametro 'isla' es requerido"}), 400
     if not cats_param:
