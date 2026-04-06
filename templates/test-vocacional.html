@@ -1038,40 +1038,7 @@
       updateStepIndicators();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    // ═══════════════════════════════════════════
-    //  SAVE RESPONSES TO MONGODB
-    // ═══════════════════════════════════════════
-    async function saveResponsesToMongo() {
-      try {
-        const payload = {
-          gender: state.gender,
-          island: state.island,
-          course: state.course,
-          answers: state.answers
-        };
-    
-        const res = await fetch(API_BASE + "/api/respuestas", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-          signal: AbortSignal.timeout(5000)
-        });
-    
-        if (res.ok) {
-          const result = await res.json();
-          console.log("✓ Respuestas guardadas en MongoDB:", result);
-          return result;
-        } else {
-          console.error("Error saving responses:", res.status);
-          return null;
-        }
-      } catch (error) {
-        console.error("Error al guardar respuestas:", error);
-        return null;
-      }
-    }
+
     // ═══════════════════════════════════════════
     //  DEMOGRAPHICS
     // ═══════════════════════════════════════════
@@ -1135,7 +1102,7 @@
           html += `</label>`;
         });
         html += `</div>`;
-        html += `<div class="likert-ends"><span>1=Muy en desacuerdo</span><span>5=Muy de acuerdo</span></div>`;
+        html += `<div class="likert-ends"><span>Muy en desacuerdo</span><span>Muy de acuerdo</span></div>`;
         html += `</div>`;
       });
 
@@ -1427,17 +1394,13 @@
       }
     });
 
-    $("btn-next").addEventListener("click", () => {
-      if (state.currentCat < categories.length - 1) {
-        state.currentCat++;
+    $("btn-prev").addEventListener("click", () => {
+      if (state.currentCat > 0) {
+        state.currentCat--;
         renderCategory();
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
-        // --- AÑADE ESTA LÍNEA AQUÍ ---
-        saveResponsesToMongo(); // <--- ESTO ACTIVA EL GUARDADO
-        
-        showSection("results");
-        renderResults();
+        showSection("demographics");
       }
     });
 
