@@ -9,7 +9,6 @@ Endpoints:
     GET  /api/islas                           -> Lista de islas
     GET  /api/estudios?isla=<nombre>          -> Estudios agrupados por tipo para una isla
     GET  /api/estudios?isla=<nombre>&cat=<id> -> Estudios filtrados por isla y categoria vocacional
-    POST /api/respuestas                      -> Guardar respuestas del test en MongoDB
 """
 
 from flask import Flask, jsonify, request, render_template
@@ -17,7 +16,6 @@ from flask_cors import CORS
 import sqlite3
 import os
 from datetime import datetime
-import mongo_db
 app = Flask(__name__)
 CORS(app)
 
@@ -38,82 +36,6 @@ def get_db():
 @app.route('/')
 def home():
     return render_template('test-vocacional.html')
-
-
-# ═══════════════════════════════════════════
-#  GUARDAR RESPUESTAS EN MONGODB
-# ═══════════════════════════════════════════
-@app.route('/api/respuestas', methods=['POST'])
-def save_respuestas():
-    """
-    Recibe las respuestas del test vocacional y las guarda en MongoDB.
-    
-    Body JSON esperado:
-    {
-        "gender": "Masculino",
-        "island": "Tenerife",
-        "course": "2 Bachillerato",
-        "answers": {
-            "salud-0": 5,
-            "salud-1": 4,
-            ...
-        }
-    }
-    """
-    try:
-        data = request.get_json()
-        
-        if not data:
-            return jsonify({
-                "status": "error",
-                "mensaje": "No se envio JSON en el body"
-            }), 400
-        
-        # Validar campos requeridos
-        required_fields = ["gender", "island", "course", "answers"]
-        if not all(field in data for field in required_fields):
-            return jsonify({
-                "status": "error",
-                "mensaje": f"Faltan campos requeridos. Esperados: {required_fields}"
-            }), 400
-        
-        # Crear documento con timestamp
-        documento = {
-            "timestamp": datetime.utcnow().isoformat(),
-            "gender": data["gender"],
-            "island": data["island"],
-            "course": data["course"],
-            "answers": data["answers"]
-        }
-        
-        # Guardar en MongoDB
-        try:
-            from mongo_db import get_db_collection
-            coleccion = get_db_collection("respuestas_test")
-            resultado = coleccion.insert_one(documento)
-            
-            return jsonify({
-                "status": "guardado",
-                "id": str(resultado.inserted_id),
-                "mensaje": "Respuestas guardadas correctamente en MongoDB"
-            }), 201
-        except ImportError:
-            # Si no está disponible MongoDB, guardar en un archivo de log
-            import json
-            with open("respuestas_backup.jsonl", "a", encoding="utf-8") as f:
-                f.write(json.dumps(documento) + "\n")
-            
-            return jsonify({
-                "status": "guardado_backup",
-                "mensaje": "Respuestas guardadas en archivo de respaldo (MongoDB no disponible)"
-            }), 201
-        
-    except Exception as e:
-        return jsonify({
-            "status": "error",
-            "mensaje": str(e)
-        }), 500
-
 
 # ═══════════════════════════════════════════
 #  ENDPOINTS PARA ESTUDIOS
