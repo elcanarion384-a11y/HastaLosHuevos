@@ -799,14 +799,24 @@
               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
               <path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5" />
-            </svg> Curso actual</div>
+            </svg> Curso actual o formación adquirida</div>
           <div class="card-desc">Selecciona tu nivel educativo</div>
         </div>
         <div class="card-content">
           <div class="radio-grid cols-2" id="course-options"></div>
         </div>
       </div>
-
+      <!-----STUDIOS------->
+      <div class="card" id="uni-card" style="display: none;">
+           <div class="card-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+              <path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5" />
+            </svg>Selecciona tu especialidad</div>
+        <div class="card-content">
+          <div class="radio-grid cols-2" id="uni-options"></div>
+        </div>
+      </div>
       <div class="flex-end">
         <button class="btn btn-primary btn-lg" id="btn-start" disabled>Comenzar cuestionario &rarr;</button>
       </div>
@@ -819,7 +829,7 @@
       <div style="margin-bottom:1.5rem;">
         <div class="progress-info">
           <span id="q-section-label">Seccion 1 de 8</span>
-          <span id="q-answer-label">0 / 32 respuestas</span>
+          <span id="q-answer-label">0 / 81 respuestas</span>
         </div>
         <div class="progress-bar">
           <div class="progress-fill" id="q-progress" style="width:0%"></div>
@@ -862,7 +872,7 @@
       <div class="card reco-section" id="reco-card" style="display:none;">
         <div class="card-header">
           <div class="card-title"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c0 1.1 2.7 2 6 2s6-.9 6-2v-5"/></svg> Estudios recomendados en tu isla</div>
-          <div class="card-desc" id="reco-subtitle">Oferta formativa disponible en tu isla segun tus categorias principales</div>
+          <div class="card-desc" id="reco-subtitle">Oferta formativa disponible en toda España segun tus categorias principales</div>
         </div>
         <div class="card-content" id="reco-content">
           <div class="reco-loading">Cargando recomendaciones...</div>
@@ -884,9 +894,9 @@
     // ═══════════════════════════════════════════
     //  API CONFIG
     // ═══════════════════════════════════════════
-    const API_BASE = "https://test-0vn4.onrender.com";
-    let apiOnline = false;
-
+    const API_BASE = "https://subspirally-unswallowed-gunner.ngrok-free.dev"
+    let apiOnline = false
+    let enviado=false;
     // Mapeo de IDs de categoria en el HTML -> IDs en la base de datos
     const catToDb = {
       salud: "sanitario",
@@ -916,80 +926,229 @@
         statusEl.innerHTML = '<span class="dot"></span><span>Modo offline</span>';
       }
     }
+    async function enviarResultados(datosFinales) {
+  const statusEl = document.getElementById("api-status"); // Asumiendo que este elemento existe
+  if (!apiOnline) {
+    console.log("API no disponible, guardando datos localmente (simulación).");
+    // Aquí podrías implementar lógica para guardar localmente si fuera necesario
+    return;
+  }
+  try {
+    // Preparar los datos finales a enviar
+    const payload = {
+      genero: state.gender,
+      isla: state.island,
+      curso: state.course,
+      respuestas: state.answers,
+      especialidad:state.uni_study,
+    };
+
+    const respuesta = await fetch(`${API_BASE}/api/guardar_test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (respuesta.ok) {
+      const r = await respuesta.json();
+      console.log("Datos enviados correctamente:", r);
+      statusEl.innerHTML = '<span class="dot"></span><span>Resultados guardados</span>';
+    } else {
+      throw new Error(`Error al guardar: ${respuesta.statusText}`);
+    }
+  } catch (e) {
+    console.error("Error al conectar con la API para guardar resultados:", e);
+    statusEl.className = "api-status offline";
+    statusEl.innerHTML = '<span class="dot"></span><span>Error al guardar</span>';
+  }
+}
+
 
     // ═══════════════════════════════════════════
     //  DATA
     // ═══════════════════════════════════════════
     const categories = [
       {
-        id: "salud", name: "Salud y Ciencias de la Vida", css: "cat-salud", chartColor: "#0284c7", questions: [
-          "Me interesa entender como funciona el cuerpo humano.",
-          "Me gustaria trabajar ayudando directamente a personas con problemas de salud.",
-          "Disfruto estudiando biologia o ciencias naturales.",
-          "Me veo trabajando en hospitales, clinicas o laboratorios."
-        ]
+        id: "salud", name: "Salud y Ciencias de la Vida",pant:"Test Vocacional", css: "cat-salud", chartColor: "#0284c7", questions: [
+ "Me interesa comprender cómo funciona el cuerpo humano",
+    "Me gustaría trabajar en hospitales",
+    "Me gustaría estudiar medicina o biología",
+    "Me interesa trabajar en laboratorios",
+    "Me interesa ayudar en procesos sanitarios",
+    "Me gustaría realizar análisis clínicos",
+    "Me interesa comprender los organismos vivos"
+  ]
       },
       {
-        id: "tecnologia", name: "Tecnologia e Ingenieria", css: "cat-tecnologia", chartColor: "#4f46e5", questions: [
-          "Me gusta resolver problemas tecnicos o matematicos complejos.",
-          "Disfruto programando o aprendiendo sobre tecnologia digital.",
-          "Me interesa como funcionan las maquinas o los sistemas informaticos.",
-          "Me gustaria participar en el desarrollo de nuevas tecnologias."
-        ]
+        id: "tecnologia", name: "Tecnologia e Ingenieria",pant:"Test Vocacional", css: "cat-tecnologia", chartColor: "#4f46e5", questions: [
+   "Me gusta resolver problemas matemáticos",
+    "Me interesa comprender cómo funcionan las máquinas",
+    "Me interesa desarrollar nuevas tecnologías",
+    "Me interesa la programación informática",
+    "Me interesa desarrollar software",
+    "Me gustaría administrar sistemas informáticos",
+    "Me interesa trabajar con instalaciones eléctricas",
+    "Me interesa reparar sistemas mecánicos",
+    "Me interesa fabricar piezas mecánicas",
+    "Me interesa desarrollar soluciones técnicas",
+    "Me gustaría desarrollar soluciones tecnológicas"]
       },
       {
-        id: "economia", name: "Economia, Gestion y Turismo", css: "cat-economia", chartColor: "#d97706", questions: [
-          "Me interesa como funcionan las empresas y los mercados.",
-          "Me gustaria dirigir mi propio negocio.",
-          "Me llama la atencion el sector turistico y su impacto en Canarias.",
-          "Disfruto organizando actividades o gestionando recursos."
-        ]
+        id: "economia", name: "Economia, Gestion y Turismo",pant:"Test Vocacional", css: "cat-economia", chartColor: "#d97706", questions: [
+    "Me gustaría dirigir una empresa",
+    "Me interesa analizar cómo funcionan los mercados",
+    "Me interesa la gestión económica",
+    "Me gustaría trabajar en marketing o publicidad",
+    "Me interesa la gestión turística",
+    "Me interesa organizar procesos administrativos",
+    "Me gustaría trabajar en gestión administrativa",
+    "Me interesa analizar cómo funcionan las empresas"]
       },
       {
-        id: "artes", name: "Artes y Creatividad", css: "cat-artes", chartColor: "#e11d48", questions: [
-          "Disfruto expresandome mediante dibujo, musica, escritura o diseno.",
-          "Me gustaria trabajar en algo relacionado con creatividad o produccion audiovisual.",
-          "Me considero una persona creativa.",
-          "Prefiero tareas que me permitan innovar antes que seguir instrucciones rigidas."
-        ]
+        id: "artes", name: "Artes y Creatividad",pant:"Test Vocacional", css: "cat-artes", chartColor: "#e11d48", questions: [
+   "Me interesa crear proyectos artísticos",
+    "Me gustaría participar en proyectos audiovisuales",
+    "Me gusta expresar ideas mediante arte o diseño",
+    "Me interesa el diseño gráfico",
+    "Me interesa producir contenido audiovisual",
+    "Me gustaría trabajar en multimedia",
+    "Me interesa el diseño gráfico aplicado",
+    "Me gustaría trabajar en artes gráficas"]
       },
       {
-        id: "deportes", name: "Deportes y Actividad Fisica", css: "cat-deportes", chartColor: "#ea580c", questions: [
-          "Practico deporte de forma habitual.",
-          "Me gustaria dedicarme profesionalmente al entrenamiento o ensenanza deportiva.",
-          "Me interesa el rendimiento fisico y la salud corporal.",
-          "Disfruto motivando a otras personas para mejorar fisicamente."
-        ]
+        id: "deportes", name: "Deportes y Actividad Fisica",pant:"Test Vocacional", css: "cat-deportes", chartColor: "#ea580c", questions: [
+           "Disfruto practicando deporte",
+    "Me gustaría entrenar a otras personas",
+    "Me interesa la fisiología del deporte",
+    "Me gustaría trabajar en preparación física",
+    "Me gustaría organizar actividades deportivas",
+    "Me interesa el entrenamiento físico",
+    "Me gustaría trabajar en actividades deportivas"
+   ]
       },
       {
-        id: "social", name: "Social, Juridica y Educativa", css: "cat-social", chartColor: "#78716c", questions: [
-          "Me gustaria ayudar a resolver conflictos sociales o legales.",
-          "Me veo trabajando como docente o educador/a.",
-          "Me interesa la psicologia y el comportamiento humano.",
-          "Disfruto comunicando ideas y debatiendo temas sociales."
-        ]
+        id: "social", name: "Social, Juridica y Educativa",pant:"Test Vocacional", css: "cat-social", chartColor: "#78716c", questions: [
+ "Me gustaría ayudar a otras personas",
+    "Me gusta explicar contenidos",
+    "Me interesa el comportamiento humano",
+    "Me gustaría enseñar o transmitir conocimientos",
+    "Me gustaría formar a otras personas",
+    "Me interesa trabajar con infancia o mayores",
+    "Me gustaría dedicarme a la educación infantil",
+    "Me interesaría trabajar con personas que necesiten apoyo",
+    "Me gustaría enseñar o transmitir conocimientos" ]
       },
       {
-        id: "humanidades", name: "Humanidades y Lenguas", css: "cat-humanidades", chartColor: "#475569", questions: [
-          "Me interesa la historia, filosofia o literatura.",
-          "Disfruto aprendiendo idiomas.",
-          "Me gustaria trabajar en traduccion, investigacion o cultura.",
-          "Prefiero actividades reflexivas antes que tecnicas."
-        ]
+        id: "humanidades", name: "Humanidades y Lenguas",pant:"Test Vocacional", css: "cat-humanidades", chartColor: "#475569", questions: [
+        "Me interesa aprender idiomas",
+    "Me gusta estudiar historia o cultura",
+    "Me interesa la traducción o interpretación",
+    "Me interesa estudiar filosofía o literatura",
+    "Me interesa comprender culturas y sociedades humanas","Me interesa analizar acontecimientos históricos y su impacto en la sociedad",
+"Disfruto leyendo obras literarias y reflexionando sobre su significado",
+"Me gustaría estudiar cómo evolucionan las lenguas y culturas",
+"Me interesa comprender las ideas filosóficas que han marcado la historia",
+"Disfruto investigando civilizaciones antiguas y su legado",
+"Me gustaría trabajar en ámbitos relacionados con la escritura, edición o comunicación cultural",
+"Me interesa interpretar textos y expresar opiniones argumentadas"
+ ]
       },
       {
-        id: "agraria", name: "Agraria y Maritimo-Pesquera", css: "cat-agraria", chartColor: "#059669", questions: [
-          "Me interesa el trabajo relacionado con el medio rural o agricola.",
-          "Me atraen los estudios relacionados con el mar o transporte maritimo.",
-          "Me gustaria trabajar en contacto directo con la naturaleza.",
-          "Considero importante el desarrollo sostenible en Canarias."
-        ]
+        id: "agraria", name: "Agraria y Maritimo-Pesquera",pant:"Test Vocacional", css: "cat-agraria", chartColor: "#059669", questions: [
+          "Me gustaría trabajar en contacto con la naturaleza",
+    "Me gustaría trabajar en el mar o actividades pesqueras",
+    "Me atrae trabajar con recursos naturales",
+    "Me interesa la producción agrícola o ganadera",
+    "Me gustaría trabajar gestionando explotaciones agrícolas",
+    "Me interesa trabajar en el mar o navegación",
+    "Me interesa la protección ambiental",
+    "Me gustaría trabajar en prevención de riesgos ambientales",
+    "Me gustaría trabajar en contacto con la naturaleza"]
+      }, 
+      {
+        id:"opinion", pant:"Opinión personal", css:"cat-agraria", chartColor:"#059669", questions: [
+            "Considero que tengo bastante claro qué área de estudios encaja mejor conmigo",
+"Creo que necesito orientación para decidir mi futuro académico o profesional",
+"Pienso que mis gustos personales pueden influir mucho en mi elección de estudios",
+"Considero importante que un test vocacional tenga en cuenta mi personalidad",
+"Creo que me conocería mejor respondiendo preguntas sobre mis intereses y habilidades",
+"Pienso que elegir estudios solo por salidas laborales no siempre es la mejor opción",
+"Considero que aún tengo dudas entre varias ramas académicas o profesionales",
+"Creo que mis capacidades reales son tan importantes como mis gustos al elegir estudios",
+"Pienso que una recomendación basada en mis respuestas podría ayudarme a decidir mejor",
+"Considero útil realizar un test para descubrir opciones que no había valorado antes"
+      ]
       }
     ];
 
     const genderOptions = ["Masculino", "Femenino"];
     const islandOptions = ["Tenerife", "Gran Canaria", "Lanzarote", "Fuerteventura", "La Palma", "La Gomera", "El Hierro", "La Graciosa"];
-    const courseOptions = ["1-3 ESO", "4 ESO", "1 Bachillerato", "2 Bachillerato", "FP Grado Medio", "FP Grado Superior", "Universidad"];
+    const courseOptions = ["1-3 ESO", "4 ESO", "1 Bachillerato", "2 Bachillerato", "FP Grado Medio", "FP Grado Superior", "Universidad", "Master","Doctorado"];
+    const uni=["Medicina",
+  "Enfermería",
+  "Psicología",
+  "Fisioterapia",
+  "Farmacia",
+  "Odontología",
+  "Veterinaria",
+  "Podología",
+  "Nutrición Humana y Dietética",
+  "Logopedia",
+  "Terapia Ocupacional",
+  "Óptica y Optometría",
+  "Arquitectura",
+  "Ingeniería Informática",
+  "Ingeniería de Software",
+  "Ingeniería Mecánica",
+  "Ingeniería Eléctrica",
+  "Ingeniería Electrónica Industrial y Automática",
+  "Ingeniería en Tecnologías de Telecomunicación",
+  "Ingeniería Civil",
+  "Ingeniería Aeroespacial",
+  "Ingeniería Química",
+  "Ingeniería en Organización Industrial",
+  "Ingeniería Biomédica",
+  "Ingeniería de Datos e Inteligencia Artificial",
+  "Derecho",
+  "Administración y Dirección de Empresas (ADE)",
+  "Economía",
+  "Criminología",
+  "Relaciones Internacionales",
+  "Periodismo",
+  "Comunicación Audiovisual",
+  "Publicidad y Relaciones Públicas",
+  "Magisterio de Educación Infantil",
+  "Magisterio de Educación Primaria",
+  "Pedagogía",
+  "Trabajo Social",
+  "Turismo",
+  "Ciencias de la Actividad Física y del Deporte",
+  "Sociología",
+  "Ciencias Políticas y de la Administración",
+  "Matemáticas",
+  "Física",
+  "Química",
+  "Biología",
+  "Biotecnología",
+  "Bioquímica",
+  "Ciencias Ambientales",
+  "Ciencias del Mar",
+  "Geología",
+  "Estadística",
+  "Historia",
+  "Historia del Arte",
+  "Filosofía",
+  "Bellas Artes",
+  "Diseño",
+  "Filología Hispánica",
+  "Estudios Ingleses",
+  "Traducción e Interpretación",
+  "Lenguas Modernas",
+  "Humanidades",
+  "Arqueología",
+  "Conservación y Restauración del Patrimonio Cultural"
+]
+
     const likertLabels = [
       { value: 1, label: "Muy en desacuerdo" },
       { value: 2, label: "En desacuerdo" },
@@ -1008,6 +1167,7 @@
       gender: "",
       island: "",
       course: "",
+      uni_study:"",
       currentCat: 0,
       answers: {} // "catId-qIdx" -> value
     };
@@ -1030,7 +1190,12 @@
         sep.className = "header-sep" + (i < idx ? " active" : "");
       }
     }
+    document.getElementById("btn-start").addEventListener("click", () => {
 
+        
+        // Cambiar a la sección del cuestionario
+        showSection("questionnaire");
+    });
     function showSection(name) {
       document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
       $(("sec-" + name)).classList.add("active");
@@ -1062,11 +1227,23 @@
     function checkDemoComplete() {
       $("btn-start").disabled = !(state.gender && state.island && state.course);
     }
-
     function initDemographics() {
+      // Género e Isla se mantienen igual
       buildRadioGroup("gender-options", genderOptions, "gender", v => state.gender = v);
       buildRadioGroup("island-options", islandOptions, "island", v => state.island = v);
-      buildRadioGroup("course-options", courseOptions, "course", v => state.course = v);
+      buildRadioGroup("course-options", courseOptions, "course", v => {
+        state.course = v; 
+        const uniCard = document.getElementById("uni-card");
+        if (v === "Universidad") {
+          uniCard.style.display = "block";
+        } else {
+          uniCard.style.display = "none";
+          state.uni_study = ""; // Limpiamos si elige otra cosa
+        }
+      });
+
+      // ESTUDIOS UNI: Los guardamos en una propiedad distinta del estado
+      buildRadioGroup("uni-options", uni, "uni_study", v => state.uni_study = v );
     }
 
     // ═══════════════════════════════════════════
@@ -1082,14 +1259,14 @@
 
       const card = $("q-category-card");
       let html = `<div class="card" style="border-width:2px;">`;
-      html += `<div class="cat-header ${cat.css}"><h2>${cat.name}</h2><div class="card-desc">Indica tu grado de acuerdo con cada afirmacion</div></div>`;
+      html += `<div class="cat-header ${cat.css}"><h2>${cat.pant}</h2><div class="card-desc">Indica tu grado de acuerdo con cada afirmacion</div></div>`;
       html += `<div class="card-content" style="padding-top:1.5rem;">`;
 
       cat.questions.forEach((q, qi) => {
         const key = `${cat.id}-${qi}`;
         const val = state.answers[key];
         const answered = val !== undefined;
-        const globalNum = catIdx * 4 + qi + 1;
+        const globalNum = qi + 1;
 
         html += `<div class="question-block ${answered ? 'answered' : ''}">`;
         html += `<div class="question-text"><span class="question-num ${answered ? 'done' : ''}">${globalNum}</span><span class="question-label">${q}</span></div>`;
@@ -1102,7 +1279,7 @@
           html += `</label>`;
         });
         html += `</div>`;
-        html += `<div class="likert-ends"><span>Muy en desacuerdo</span><span>Muy de acuerdo</span></div>`;
+        html += `<div class="likert-ends"><span>1=Muy en desacuerdo</span><span>5=Muy de acuerdo</span></div>`;
         html += `</div>`;
       });
 
@@ -1123,19 +1300,31 @@
       const allAnswered = cat.questions.every((_, qi) => state.answers[`${cat.id}-${qi}`] !== undefined);
       $("btn-next").disabled = !allAnswered;
       $("btn-prev").disabled = false;
-
       if (catIdx === categories.length - 1) {
-        $("btn-next").innerHTML = "Ver resultados &#10004;";
+          if (enviado){return}
+          enviado=true
+          const datosParaGuardar = {
+              genero: state.gender,
+              isla: state.island,
+              curso: state.course,
+              respuestas: state.answers,
+              especialidad: state.especialidad
+          };
+          enviarResultados(datosParaGuardar);
+
+          $("btn-next").innerHTML = "Ver resultados &#10004;";
       } else {
-        $("btn-next").innerHTML = "Siguiente &rarr;";
+          $("btn-next").innerHTML = "Siguiente &rarr;";
       }
     }
+    // --- Lógica del botón Next con el Listener que me pasaste ---
 
+   
     // ═══════════════════════════════════════════
     //  RESULTS
     // ═══════════════════════════════════════════
     function computeScores() {
-      return categories.map(cat => {
+      return categories.filter(cat => cat.id !== 'opinion').map(cat => {
         let total = 0;
         cat.questions.forEach((_, qi) => { total += state.answers[`${cat.id}-${qi}`] || 0; });
         const max = cat.questions.length * 5;
@@ -1153,7 +1342,7 @@
 
     function renderResults() {
       const scores = computeScores();
-      const sorted = [...scores].sort((a, b) => b.score - a.score);
+      const sorted = [...scores].sort((a, b) => b.percent - a.percent);
       const top3 = sorted.slice(0, 3);
 
       $("results-demo-info").textContent = `${state.gender} · ${state.island} · ${state.course}`;
@@ -1298,6 +1487,9 @@
     // ═══════════════════════════════════════════
     //  API: FETCH RECOMMENDATIONS
     // ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+    //  API: FETCH RECOMMENDATIONS (Global)
+    // ═══════════════════════════════════════════
     async function fetchRecommendations(sorted) {
       const recoCard = $("reco-card");
       const recoContent = $("reco-content");
@@ -1321,22 +1513,25 @@
       }
 
       try {
-        const url = `${API_BASE}/api/estudios/recomendados?isla=${encodeURIComponent(state.island)}&cats=${encodeURIComponent(dbCats.join(","))}`;
+        // Ajuste: Eliminamos el parámetro 'isla' de la URL
+        const url = `${API_BASE}/api/estudios/recomendados?cats=${encodeURIComponent(dbCats.join(","))}`;
         const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
 
         if (!res.ok) throw new Error("API error");
 
         const data = await res.json();
 
-        recoSubtitle.textContent = `Oferta formativa en ${state.island} para tus ${top3.length} categorias principales (${data.total} estudios encontrados)`;
+        // Ajuste: Subtítulo genérico sin mencionar la isla
+        recoSubtitle.textContent = `Oferta formativa para tus ${top3.length} categorías principales (${data.total} estudios encontrados)`;
 
         if (data.total === 0) {
-          recoContent.innerHTML = '<div class="reco-offline-msg">No se encontraron estudios para tus categorias en esta isla. Considera explorar la oferta en Tenerife o Gran Canaria.</div>';
+          recoContent.innerHTML = '<div class="reco-offline-msg">No se encontraron estudios para tus categorías.</div>';
           return;
         }
 
         let html = "";
-        // Render grouped by category
+        
+        // Mapas auxiliares para colores y nombres
         const catColorMap = {};
         categories.forEach(c => { catColorMap[catToDb[c.id]] = c.chartColor; });
 
@@ -1370,7 +1565,8 @@
         }
 
         recoContent.innerHTML = html;
-      } catch {
+      } catch (error) {
+        console.error("Error fetching recommendations:", error);
         recoCard.style.display = "none";
       }
     }
@@ -1405,7 +1601,7 @@
     });
 
     $("btn-restart").addEventListener("click", () => {
-      state = { step: "demographics", gender: "", island: "", course: "", currentCat: 0, answers: {} };
+      state = { step: "demographics", gender: "", island: "", course: "", especialidad:"", currentCat: 0, answers: {} };
       initDemographics();
       showSection("demographics");
     });
