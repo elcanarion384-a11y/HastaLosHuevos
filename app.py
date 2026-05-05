@@ -1,27 +1,14 @@
-"""
-app.py - Servidor Flask que sirve los datos de grados y ciclos por isla desde SQLite.
-
-Uso:
-    python app.py
-
-Endpoints:
-    GET  /                                    -> Test vocacional HTML
-    GET  /api/islas                           -> Lista de islas
-    GET  /api/estudios?isla=<nombre>          -> Estudios agrupados por tipo para una isla
-    GET  /api/estudios?isla=<nombre>&cat=<id> -> Estudios filtrados por isla y categoria vocacional
-"""
-
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 import sqlite3
 import os
-from datetime import datetime
+
 app = Flask(__name__)
 CORS(app)
-
+contador=0
+# --- CONFIGURACIÓN DE BASE DE DATOS ---
 DB_DIR = os.environ.get("DB_DIR", os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(DB_DIR, "vocacional.db")
-
 
 def get_db():
     """Abre una conexion a la base de datos SQLite."""
@@ -29,20 +16,72 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+# --- RUTAS DE NAVEGACIÓN Y RECEPCIÓN ---
 
-# ═══════════════════════════════════════════
-#  PÁGINA PRINCIPAL
-# ═══════════════════════════════════════════
 @app.route('/')
-def home():
-    return render_template('test-vocacional.html')
+def index():
+    """Carga la página principal del test."""
+    return render_template('test.html')
 
-# ═══════════════════════════════════════════
-#  ENDPOINTS PARA ESTUDIOS
-# ═══════════════════════════════════════════
+@app.route('/api/guardar_test', methods=['POST'])
+def guardar_test():
+    global contador
+    if contador==0:
+
+        """Recibe los datos finales del test y los guarda en la base de datos."""
+        datos = request.get_json()
+        if not datos:
+            return jsonify({"error": "No se recibieron datos"}), 400
+        
+        # Extraemos los datos del JSON
+        genero = datos.get('genero')
+        isla = datos.get('isla')
+        curso = datos.get('curso')
+        respuestas = datos.get('respuestas', {}) # Es un diccionario tipo {'salud-0': 5, 'artes-1': 2...}
+        especialidad= datos.get('especialidad')
+        print(f"--- GUARDANDO TEST: Usuario {genero} de {isla} ---")
+        
+        conn = get_db()
+        try:
+            cur = conn.cursor()
+
+            # PASO 1: Insertar en la tabla "Padre" (Cuestionarios)
+            # Dejamos que SQLite genere el ID autoincremental
+            cur.execute("""
+                INSERT INTO cuestionarios (genero, isla, curso, especialidad)
+                VALUES (?, ?, ?, ?)
+            """, (datos.get('genero'), datos.get('isla'), datos.get('curso'), datos.get('especialidad')))
+
+            # PASO 2: Recuperar el ID que se acaba de crear
+            cuestionario_id = cur.lastrowid 
+
+            # PASO 3: Insertar todas las respuestas usando ese ID
+            respuestas = datos.get('respuestas', {})
+            for clave, valor in respuestas.items():
+                cat, idx = clave.split('-')
+                
+                cur.execute("""
+                    INSERT INTO respuestas (cuestionario_id, categoria, pregunta_idx, puntuacion)
+                    VALUES (?, ?, ?, ?)
+                """, (cuestionario_id, cat, idx, valor))
+
+            conn.commit()
+                
+            return jsonify({
+                "status": "success", 
+                "mensaje": f"Test guardado con éxito. Se procesaron {len(respuestas)} respuestas."
+            }), 200
+
+        except Exception as e:
+            print(f"ERROR AL GUARDAR EN DB: {e}")
+            return jsonify({"error": "Error interno al guardar los datos"}), 500
+        finally:
+            conn.close()
+
+# --- TUS FUNCIONES ORIGINALES DE LA BASE DE DATOS ---
+
 @app.route("/api/islas", methods=["GET"])
 def get_islas():
-    """Devuelve la lista de todas las islas."""
     conn = get_db()
     try:
         cur = conn.cursor()
@@ -52,36 +91,20 @@ def get_islas():
     finally:
         conn.close()
 
-
 @app.route("/api/estudios", methods=["GET"])
 def get_estudios():
-    """
-    Devuelve estudios filtrados por isla y opcionalmente por categoria vocacional.
-    Los resultados se agrupan por tipo de estudio.
-
-    Query params:
-        isla (str, requerido): Nombre de la isla
-        cat  (str, opcional):  ID de la categoria vocacional (ej: 'sanitario', 'tecnologico')
-    """
     isla_nombre = request.args.get("isla")
     categoria = request.args.get("cat")
-
     if not isla_nombre:
         return jsonify({"error": "El parametro 'isla' es requerido"}), 400
-
     conn = get_db()
     try:
         cur = conn.cursor()
-
-        # Verificar que la isla existe
         cur.execute("SELECT id FROM islas WHERE LOWER(nombre) = LOWER(?)", (isla_nombre,))
         isla_row = cur.fetchone()
         if not isla_row:
             return jsonify({"error": f"Isla '{isla_nombre}' no encontrada"}), 404
-
         isla_id = isla_row["id"]
-
-        # Construir query
         if categoria:
             cur.execute("""
                 SELECT e.nombre AS estudio, t.nombre AS tipo, e.categoria
@@ -98,128 +121,79 @@ def get_estudios():
                 WHERE e.isla_id = ?
                 ORDER BY t.id, e.nombre
             """, (isla_id,))
-
         rows = cur.fetchall()
-
-        # Agrupar por tipo de estudio
         grouped = {}
         for row in rows:
             tipo = row["tipo"]
-            if tipo not in grouped:
-                grouped[tipo] = []
-            grouped[tipo].append({
-                "nombre": row["estudio"],
-                "categoria": row["categoria"]
-            })
-
-        return jsonify({
-            "isla": isla_nombre,
-            "categoria": categoria,
-            "total": len(rows),
-            "estudios_por_tipo": grouped
-        })
+            if tipo not in grouped: grouped[tipo] = []
+            grouped[tipo].append({"nombre": row["estudio"], "categoria": row["categoria"]})
+        return jsonify({"isla": isla_nombre, "categoria": categoria, "total": len(rows), "estudios_por_tipo": grouped})
     finally:
         conn.close()
-
 
 @app.route("/api/estudios/recomendados", methods=["GET"])
 def get_recomendados():
-    """
-    Devuelve estudios recomendados para una isla basandose en multiples categorias.
-    Se usa en la pantalla de resultados para cruzar las top categorias del usuario
-    con la oferta disponible en su isla.
-
-    Query params:
-        isla (str, requerido): Nombre de la isla
-        cats (str, requerido): Categorias separadas por coma (ej: 'sanitario,tecnologico,economico')
-    """
-    isla_nombre = request.args.get("isla")
+    # 1. Ya no validamos 'isla_nombre' como obligatorio
     cats_param = request.args.get("cats", "")
-    if not isla_nombre:
-        return jsonify({"error": "El parametro 'isla' es requerido"}), 400
-    if not cats_param:
-        return jsonify({"error": "El parametro 'cats' es requerido"}), 400
-
-    # Lógica de guardado simplificada
-    documento_rapido = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "island": isla_nombre,
-        "top_categories": cats_param,
-        "metodo": "directo_desde_recomendados"
-    }
     
-    # Llamamos a la función segura de tu otro archivo
-    mongo_db.guardar_registro(documento_rapido, "respuestas_test")
-    if not isla_nombre:
-        return jsonify({"error": "El parametro 'isla' es requerido"}), 400
     if not cats_param:
-        return jsonify({"error": "El parametro 'cats' es requerido"}), 400
-
+        return jsonify({"error": "Faltan parámetro cats"}), 400
+        
     categorias = [c.strip().lower() for c in cats_param.split(",") if c.strip()]
-
     conn = get_db()
     try:
         cur = conn.cursor()
-
-        # Verificar isla
-        cur.execute("SELECT id FROM islas WHERE LOWER(nombre) = LOWER(?)", (isla_nombre,))
-        isla_row = cur.fetchone()
-        if not isla_row:
-            return jsonify({"error": f"Isla '{isla_nombre}' no encontrada"}), 404
-
-        isla_id = isla_row["id"]
-
-        # Buscar estudios que coincidan con cualquiera de las categorias
+        
+        # 2. Preparamos la lógica de orden (esto se queda igual para priorizar tus tops)
         placeholders = ",".join(["?" for _ in categorias])
-        cur.execute(f"""
+        case_logic = " ".join([f"WHEN LOWER(e.categoria) = ? THEN {i}" for i, _ in enumerate(categorias)])
+        
+        # 3. Consulta SQL simplificada: Quitamos el JOIN con islas y el WHERE de isla_id
+        # Filtramos para que solo traiga estudios de las categorías solicitadas
+        query = f"""
             SELECT e.nombre AS estudio, t.nombre AS tipo, e.categoria
             FROM estudios e
             JOIN tipos_estudio t ON e.tipo_id = t.id
-            WHERE e.isla_id = ? AND LOWER(e.categoria) IN ({placeholders})
+            WHERE LOWER(e.categoria) IN ({placeholders})
             ORDER BY
-                CASE LOWER(e.categoria)
-                    {" ".join([f"WHEN ? THEN {i}" for i, _ in enumerate(categorias)])}
+                CASE 
+                    {case_logic}
                     ELSE {len(categorias)}
                 END,
                 t.id, e.nombre
-        """, [isla_id] + categorias + categorias)
-
+        """
+        
+        # Ejecutamos pasando las categorías dos veces (una para el IN y otra para el CASE)
+        cur.execute(query, categorias + categorias)
+        
         rows = cur.fetchall()
-
-        # Agrupar por categoria
         by_category = {}
         for row in rows:
             cat = row["categoria"]
-            if cat not in by_category:
-                by_category[cat] = []
-            by_category[cat].append({
-                "nombre": row["estudio"],
-                "tipo": row["tipo"]
-            })
-
+            if cat not in by_category: by_category[cat] = []
+            by_category[cat].append({"nombre": row["estudio"], "tipo": row["tipo"]})
+            
         return jsonify({
-            "isla": isla_nombre,
-            "categorias": categorias,
-            "total": len(rows),
+            "categorias_solicitadas": categorias, 
+            "total": len(rows), 
             "recomendados_por_categoria": by_category
         })
+    except Exception as e:
+        print(f"Error en recomendados: {e}")
+        return jsonify({"error": str(e)}), 500
     finally:
         conn.close()
 
-
 @app.route("/api/health", methods=["GET"])
 def health():
-    """Endpoint de salud para verificar que el servidor esta corriendo."""
     return jsonify({"status": "ok", "db_exists": os.path.exists(DB_PATH)})
 
+# --- INICIO DEL SERVIDOR ---
 
 if __name__ == "__main__":
     if not os.path.exists(DB_PATH):
         print(f"AVISO: No se encontro la base de datos en {DB_PATH}")
-        print("Ejecuta primero: python init_db.py")
     else:
-        print(f"Base de datos encontrada: {DB_PATH}")
+        print(f"Base de datos detectada en: {DB_PATH}")
 
-    print("Servidor iniciando en http://localhost:5000")
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=True)
